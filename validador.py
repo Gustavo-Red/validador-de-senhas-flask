@@ -23,16 +23,11 @@ app = Flask(__name__)
 
 @app.route("/validate", methods=["POST"])
 def validador():
-    dados = request.get_json()
-    password = dados.get("password")
-    return {"valid": input_senha(password)}
-
+    try:
+        dados = request.get_json(silent=True)
+        password = dados["password"]
+        return {"valid": input_senha(password)}
+    except (TypeError, KeyError):
+        return {"error": "Invalid input. Please provide a JSON object with a 'password' field."}, 400
 if __name__ == "__main__":
     app.run(debug=True)
-
-if maiusculas == 0:
-    def cond():
-        return {"mensagem": "Não tem letras maiúsculas"}
-
-    if __name__ == "__main__": # Esse if roda o programa
-        app.run(debug=True)
