@@ -1,143 +1,24 @@
-# Validador de Senhas — Flask API
+# Validador de Senhas — API em Flask
 
-API REST desenvolvida em **Python** utilizando **Flask** para validar senhas de acordo com um conjunto de regras predefinidas.
+API REST em **Python** com **Flask** que recebe uma senha em JSON e informa se ela atende a um conjunto de regras de segurança. Requisições malformadas recebem um erro **400** com mensagem clara, sem derrubar o servidor.
 
-Este projeto foi desenvolvido como parte de um **desafio técnico**, com o objetivo de praticar conceitos básicos de desenvolvimento de APIs, requisições HTTP, JSON e lógica de programação.
-
-## Sobre o desafio
-
-O objetivo é desenvolver uma API capaz de receber uma senha através de uma requisição HTTP e informar se ela atende aos critérios estabelecidos.
-
-A API possui o endpoint:
-
-```text
-POST /validate
-```
-
-A senha é enviada no corpo da requisição em formato JSON e a API retorna um objeto indicando se ela é válida.
-
-## Tecnologias utilizadas
-
-* Python 3.10+
-* Flask
-* JSON
-* HTTP / REST API
-* Postman para testes
+Projeto desenvolvido como **desafio técnico**, para praticar desenvolvimento de APIs, requisições HTTP, JSON, validação de dados e tratamento de erros.
 
 ## Regras de validação
 
-Uma senha é considerada válida quando atende a todas as seguintes condições:
+Uma senha é válida quando atende a **todas** as condições:
 
-* Possuir pelo menos 8 caracteres;
-* Possuir pelo menos 1 letra maiúscula;
-* Possuir pelo menos 1 letra minúscula;
-* Possuir pelo menos 1 número;
-* Não possuir espaços.
-
-Essas são as regras definidas no desafio técnico.
-
-## Estrutura do projeto
-
-```text
-validador-de-senhas-flask/
-│
-├── validador.py
-├── requirements.txt
-├── README.md
-└── .gitignore
-```
-
-### `validador.py`
-
-Contém a aplicação Flask, a lógica de validação da senha e o endpoint `POST /validate`.
-
-### `requirements.txt`
-
-Contém as dependências necessárias para executar o projeto.
-
-### `.gitignore`
-
-Define arquivos e diretórios que não devem ser enviados para o repositório.
-
-## Como executar
-
-### 1. Clone o repositório
-
-```bash
-git clone https://github.com/SEU-USUARIO/validador-de-senhas-flask.git
-```
-
-Entre na pasta:
-
-```bash
-cd validador-de-senhas-flask
-```
-
-### 2. Crie um ambiente virtual
-
-```bash
-python3 -m venv .venv
-```
-
-### 3. Ative o ambiente virtual
-
-No Linux/macOS:
-
-```bash
-source .venv/bin/activate
-```
-
-No Windows:
-
-```powershell
-.venv\Scripts\activate
-```
-
-### 4. Instale as dependências
-
-```bash
-pip install -r requirements.txt
-```
-
-### 5. Execute a API
-
-```bash
-python3 validador.py
-```
-
-A aplicação será iniciada localmente em:
-
-```text
-http://127.0.0.1:5000
-```
+- ter pelo menos 8 caracteres;
+- ter pelo menos 1 letra maiúscula;
+- ter pelo menos 1 letra minúscula;
+- ter pelo menos 1 número;
+- não ter espaços.
 
 ## Endpoint
 
 ### `POST /validate`
 
-O endpoint recebe uma senha através de um objeto JSON.
-
-**URL:**
-
-```text
-http://127.0.0.1:5000/validate
-```
-
-**Método:**
-
-```text
-POST
-```
-
-### Body
-
-No Postman, selecione:
-
-```text
-Body → raw → JSON
-```
-
-Envie:
+**Requisição** (corpo em JSON):
 
 ```json
 {
@@ -145,175 +26,117 @@ Envie:
 }
 ```
 
-O formato da requisição segue a especificação do desafio.
+**Respostas:**
 
-### Resposta — senha válida
+| Situação | Status HTTP | Corpo da resposta |
+|---|---|---|
+| Senha atende às regras | `200` | `{"valid": true}` |
+| Senha não atende às regras | `200` | `{"valid": false}` |
+| Requisição inválida | `400` | `{"error": "Invalid input. Please provide a JSON object with a 'password' field."}` |
 
-```json
-{
-    "valid": true
-}
+São consideradas **requisições inválidas**:
+
+- corpo que não é JSON ou JSON malformado;
+- JSON sem o campo `password`;
+- campo `password` que não é texto (por exemplo, um número);
+- JSON que não é um objeto (por exemplo, uma lista).
+
+## Tratamento de erros
+
+A rota usa `try/except` para capturar apenas os erros causados por uma requisição mal formada:
+
+- `request.get_json(silent=True)` devolve `None` quando o corpo não é um JSON válido, em vez de interromper a requisição;
+- acessar `dados["password"]` gera `TypeError` quando não há um objeto JSON e `KeyError` quando o campo não existe;
+- percorrer uma senha que não é texto também gera `TypeError`.
+
+Esses dois erros são tratados e viram uma resposta **400** (erro de quem fez a requisição). Os demais erros não são capturados de propósito, para que falhas no próprio código não fiquem escondidas.
+
+## Como executar
+
+Requisito: Python 3.10 ou superior.
+
+```bash
+git clone https://github.com/Gustavo-Red/validador-de-senhas-flask.git
+cd validador-de-senhas-flask
+
+python3 -m venv .venv
+source .venv/bin/activate        # no Windows: .venv\Scripts\activate
+
+pip install -r requirements.txt
+python3 validador.py
 ```
 
-### Resposta — senha inválida
+A API fica disponível em `http://127.0.0.1:5000`.
 
-```json
-{
-    "valid": false
-}
+## Testando
+
+### Pelo terminal, com `curl`
+
+```bash
+# Senha válida → 200 {"valid": true}
+curl -X POST http://127.0.0.1:5000/validate \
+     -H "Content-Type: application/json" \
+     -d '{"password": "Senha123"}'
+
+# Senha sem número → 200 {"valid": false}
+curl -X POST http://127.0.0.1:5000/validate \
+     -H "Content-Type: application/json" \
+     -d '{"password": "SenhaABC"}'
+
+# JSON sem o campo password → 400
+curl -X POST http://127.0.0.1:5000/validate \
+     -H "Content-Type: application/json" \
+     -d '{}'
+
+# Corpo que não é JSON → 400
+curl -X POST http://127.0.0.1:5000/validate -d 'qualquer coisa'
 ```
 
-Esses são os formatos de resposta definidos no desafio.
+### Pelo Postman
 
-## Testando com Postman
+Com a API em execução:
 
-Com a aplicação Flask em execução, abra o Postman e crie uma requisição:
+1. Crie uma nova requisição e escolha o método **POST**.
+2. Use a URL `http://127.0.0.1:5000/validate`.
+3. Na aba **Body**, selecione **raw** e, no menu ao lado, **JSON**.
+4. Escreva o corpo, por exemplo `{"password": "Senha123"}`, e clique em **Send**.
 
-```text
-POST http://127.0.0.1:5000/validate
-```
+Casos de teste:
 
-No **Body**, selecione:
+| Caso | Senha enviada | Resultado |
+|---|---|---|
+| Válida | `Senha123` | `{"valid": true}` |
+| Sem letra maiúscula | `senha123` | `{"valid": false}` |
+| Sem letra minúscula | `SENHA123` | `{"valid": false}` |
+| Sem número | `SenhaABC` | `{"valid": false}` |
+| Com espaço | `Senha 123` | `{"valid": false}` |
+| Menos de 8 caracteres | `Sen1` | `{"valid": false}` |
 
-```text
-raw → JSON
-```
-
-### Teste 1 — Senha válida
-
-```json
-{
-    "password": "Senha123"
-}
-```
-
-Resposta esperada:
-
-```json
-{
-    "valid": true
-}
-```
-
-### Teste 2 — Sem letra maiúscula
-
-```json
-{
-    "password": "senha123"
-}
-```
-
-Resposta:
-
-```json
-{
-    "valid": false
-}
-```
-
-### Teste 3 — Sem letra minúscula
-
-```json
-{
-    "password": "SENHA123"
-}
-```
-
-Resposta:
-
-```json
-{
-    "valid": false
-}
-```
-
-### Teste 4 — Sem número
-
-```json
-{
-    "password": "SenhaABC"
-}
-```
-
-Resposta:
-
-```json
-{
-    "valid": false
-}
-```
-
-### Teste 5 — Contém espaço
-
-```json
-{
-    "password": "Senha 123"
-}
-```
-
-Resposta:
-
-```json
-{
-    "valid": false
-}
-```
-
-### Teste 6 — Menos de 8 caracteres
-
-```json
-{
-    "password": "Sen1"
-}
-```
-
-Resposta:
-
-```json
-{
-    "valid": false
-}
-```
-
-Os casos de teste acima correspondem aos casos apresentados no desafio técnico.
+Para ver o tratamento de erros no Postman, envie o corpo `{}` (sem o campo `password`) ou troque **JSON** por **Text** e envie um texto qualquer: a resposta deve ter status **400 BAD REQUEST** e a mensagem de erro.
 
 ## Como funciona
 
-A função responsável pela validação percorre cada caractere da senha e verifica:
+A função `input_senha` percorre cada caractere da senha contando letras maiúsculas, minúsculas, números e espaços. A senha só é válida se todas as contagens atenderem às regras e o tamanho for de pelo menos 8 caracteres.
 
-* Se é uma letra maiúscula;
-* Se é uma letra minúscula;
-* Se é um número;
-* Se é um espaço.
+A rota `/validate` lê o JSON da requisição, extrai o campo `password`, chama `input_senha` e devolve o resultado em JSON.
 
-Depois, a senha é considerada válida somente quando todas as condições são atendidas e possui pelo menos 8 caracteres.
+## Estrutura do projeto
 
-A API recebe o JSON através da requisição, extrai o campo `password` e envia o resultado da validação como resposta.
+```text
+validador-de-senhas-flask/
+├── validador.py       # aplicação Flask, regras de validação e endpoint
+├── requirements.txt   # dependências (Flask)
+├── .gitignore
+└── README.md
+```
 
-## Objetivos de aprendizado
+## Tecnologias
 
-Este projeto foi desenvolvido para praticar:
-
-* Lógica de programação;
-* Desenvolvimento de APIs com Flask;
-* Requisições HTTP;
-* Métodos HTTP;
-* Manipulação de JSON;
-* Validação de dados;
-* Estruturação de pequenos projetos Python;
-* Testes de APIs utilizando Postman.
-
-## Critérios do desafio
-
-O desafio avalia principalmente:
-
-* Organização do código;
-* Uso básico do Flask;
-* Lógica de programação;
-* Clareza e legibilidade da solução.
+- Python 3
+- Flask
+- HTTP / REST e JSON
+- Postman e curl para testes
 
 ## Autor
 
-**Gustavo Vieira dos Santos**
-
-Projeto desenvolvido para fins de estudo e prática em **Python, Flask e desenvolvimento de APIs REST**.
+**Gustavo Vieira dos Santos** — estudante de Ciência da Computação na UFMT.
